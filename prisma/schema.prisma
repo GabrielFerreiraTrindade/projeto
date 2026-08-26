@@ -1,0 +1,643 @@
+// Prisma schema — Plataforma de e-commerce de pneus
+// Modela a arquitetura de dados prevista para o produto. Nesta etapa
+// somente a estrutura é definida; nenhuma funcionalidade (checkout,
+// pagamento, login, estoque, painel admin) é implementada ainda.
+//
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Usuários e endereços
+// ============================================================================
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  cpf                 String               @unique
+  phone               String
+  // Hash bcrypt — a senha em texto puro nunca é persistida.
+  passwordHash        String
+  role                UserRole             @default(CUSTOMER)
+  addresses           Address[]
+  orders              Order[]
+  reviews             Review[]
+  cart                Cart?
+  passwordResetTokens PasswordResetToken[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@map("users")
+}
+
+// Token de recuperação de senha. Só o hash do token é armazenado (o token
+// em si só existe no link enviado ao usuário), com expiração curta.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model Address {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  label        String?
+  recipient    String
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String
+  zipCode      String
+  isDefault    Boolean  @default(false)
+  orders       Order[]
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// ============================================================================
+// Catálogo: marcas, categorias, medidas, veículos e produtos
+// ============================================================================
+
+model Brand {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  slug       String      @unique
+  logoUrl    String?
+  products   Product[]
+  tireModels TireModel[]
+
+  @@map("brands")
+}
+
+// Linha/modelo de pneu de uma marca (ex: "Cinturato P1"), usada para agrupar
+// produtos da mesma linha em medidas diferentes e para a URL de SEO
+// /pneu/[marca]/[modelo]/[medida].
+model TireModel {
+  id        String    @id @default(cuid())
+  brand     Brand     @relation(fields: [brandId], references: [id])
+  brandId   String
+  name      String
+  slug      String
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@map("tire_models")
+}
+
+// Classificação qualitativa usada sempre que não há dado quantitativo
+// verificável (ex: volume de vendas por marca/medida não é público).
+// UNKNOWN é usado quando nem uma estimativa qualitativa é sustentável (ex:
+// volume de vendas real, que nunca deve ser inventado — ver seção de
+// limitações do catálogo).
+enum ScoreLevel {
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+// Pesquisa de demanda por medida (ver src/lib/catalog/tire-size-demand-data.ts
+// para os dados e fontes usados para popular esta tabela via seed).
+model TireSizeDemand {
+  id                   String     @id @default(cuid())
+  size                 TireSize   @relation(fields: [tireSizeId], references: [id])
+  tireSizeId           String     @unique
+  width                Int
+  aspectRatio          Int
+  rim                  Int
+  demandScore          ScoreLevel
+  brazilRelevance      ScoreLevel
+  minasGeraisRelevance ScoreLevel
+  sources              String     @db.Text
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  @@map("tire_size_demand")
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  name     String
+  slug     String     @unique
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  parentId String?
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@map("categories")
+}
+
+// Medida do pneu (ex: 175/70 R14). aspectRatio é opcional porque pneus
+// comerciais de van/utilitário são especificados sem número de perfil (ex:
+// "185R14C" — só largura, aro e a letra de carga, sem "/NN"). rimDiameter é
+// Float porque pneus de caminhão/ônibus usam aro fracionário (ex: 22.5").
+model TireSize {
+  id               String            @id @default(cuid())
+  width            Int
+  aspectRatio      Int?
+  rimDiameter      Float
+  loadIndex        String?
+  speedRating      String?
+  products         Product[]
+  vehicleTireSizes VehicleTireSize[]
+  demand           TireSizeDemand?
+
+  @@unique([width, aspectRatio, rimDiameter, loadIndex, speedRating])
+  @@map("tire_sizes")
+}
+
+// ============================================================================
+// Veículos — usado pela busca "por veículo" (marca > modelo > ano > versão)
+// Cadeia relacional plana, pensada para permitir importar milhares de
+// veículos via seed/CSV sem mudar a modelagem.
+// ============================================================================
+
+model VehicleBrand {
+  id     String         @id @default(cuid())
+  name   String         @unique
+  slug   String         @unique
+  models VehicleModel[]
+
+  @@map("vehicle_brands")
+}
+
+model VehicleModel {
+  id      String        @id @default(cuid())
+  brand   VehicleBrand  @relation(fields: [brandId], references: [id])
+  brandId String
+  name    String
+  slug    String
+  years   VehicleYear[]
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@map("vehicle_models")
+}
+
+model VehicleYear {
+  id       String           @id @default(cuid())
+  model    VehicleModel     @relation(fields: [modelId], references: [id])
+  modelId  String
+  year     Int
+  versions VehicleVersion[]
+
+  @@unique([modelId, year])
+  @@index([modelId])
+  @@map("vehicle_years")
+}
+
+// Versão/trim do veículo (ex: "XEi"), com motorização quando aplicável
+// (ex: "2.0 Flex"). Duas linhas com o mesmo trim e motorizações diferentes
+// representam a necessidade de escolher a motorização na busca.
+model VehicleVersion {
+  id        String            @id @default(cuid())
+  year      VehicleYear       @relation(fields: [yearId], references: [id])
+  yearId    String
+  trim      String
+  engine    String?
+  slug      String
+  tireSizes VehicleTireSize[]
+
+  @@unique([yearId, slug])
+  @@index([yearId])
+  @@map("vehicle_versions")
+}
+
+// Medidas de pneu compatíveis com uma versão de veículo (pode haver mais de
+// uma, ex: medida original e uma opcional).
+model VehicleTireSize {
+  id         String         @id @default(cuid())
+  version    VehicleVersion @relation(fields: [versionId], references: [id])
+  versionId  String
+  size       TireSize       @relation(fields: [sizeId], references: [id])
+  sizeId     String
+  isOriginal Boolean        @default(true)
+
+  @@unique([versionId, sizeId])
+  @@index([versionId])
+  @@index([sizeId])
+  @@map("vehicle_tire_sizes")
+}
+
+// Posição de ranking de um produto dentro do par (marca, medida). Ter apenas
+// dois valores possíveis, combinado com a constraint @@unique abaixo, é o que
+// impede — no nível do banco, não só na aplicação — que uma marca tenha um
+// terceiro modelo cadastrado para a mesma medida.
+enum RankingPosition {
+  FIRST
+  SECOND
+}
+
+// Status de autorização da imagem do produto. Nenhuma imagem é publicada
+// automaticamente sem autorização clara (ver seção de imagens do catálogo).
+enum ImageStatus {
+  PENDING_PERMISSION
+  MANUFACTURER_AUTHORIZED
+  LICENSED
+  OWN
+}
+
+enum VehicleType {
+  PASSENGER
+  SUV
+  LIGHT_TRUCK
+  MOTORCYCLE
+  TRUCK_BUS
+  AGRICULTURAL
+}
+
+model Product {
+  id              String          @id @default(cuid())
+  sku             String          @unique
+  name            String
+  slug            String          @unique
+  description     String?
+  brand           Brand           @relation(fields: [brandId], references: [id])
+  brandId         String
+  tireModel       TireModel       @relation(fields: [tireModelId], references: [id])
+  tireModelId     String
+  category        Category        @relation(fields: [categoryId], references: [id])
+  categoryId      String
+  size            TireSize        @relation(fields: [sizeId], references: [id])
+  sizeId          String
+  // Réplica de size.width/aspectRatio/rimDiameter para permitir filtrar sem
+  // join — mesma medida, mantida em sincronia pela camada de importação
+  // (nunca editada manualmente fora dela). aspectRatio nulo = pneu comercial
+  // sem número de perfil (ex: van "185R14C"). rim é Float para aro
+  // fracionário de caminhão/ônibus (ex: 22.5").
+  width           Int
+  aspectRatio     Int?
+  rim             Float
+  loadIndex       String?
+  speedIndex      String?
+  runFlat         Boolean         @default(false)
+  vehicleType     VehicleType     @default(PASSENGER)
+  // Mercado brasileiro de reposição não tem oferta relevante de pneus de
+  // inverno; todo o catálogo é "all season" nesta etapa.
+  season          String          @default("ALL_SEASON")
+  barcode         String?         @unique
+  gtin            String?         @unique
+  // Rastreabilidade de onde a informação do produto veio (ver também
+  // ProductSource, para múltiplas fontes/evidências por produto).
+  source          String?
+  sourceUrl       String?
+  imageStatus     ImageStatus     @default(PENDING_PERMISSION)
+  // Junto da unique constraint abaixo, garante no banco a regra de no
+  // máximo 2 modelos da mesma marca para a mesma medida.
+  rankingPosition RankingPosition
+  // 1 = pneu avulso, 2/4 = kit do mesmo modelo+medida (ver categoria
+  // "kit-de-pneus"). Entra na unique constraint pra um kit não brigar pela
+  // mesma vaga do pneu avulso — é uma embalagem diferente do mesmo produto,
+  // não um "3º modelo" da marca pra aquela medida.
+  packQuantity    Int             @default(1)
+  price           Decimal         @default(0) @db.Decimal(10, 2)
+  compareAtPrice  Decimal?        @db.Decimal(10, 2)
+  isActive        Boolean         @default(true)
+  images          ProductImage[]
+  stock           StockItem?
+  sources         ProductSource[]
+  score           ProductScore?
+  reviews         Review[]
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([brandId, sizeId, rankingPosition, packQuantity])
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([sizeId])
+  @@index([tireModelId])
+  @@map("products")
+}
+
+// Evidência/fonte usada para justificar a inclusão de um produto no
+// catálogo (fabricante, distribuidor, catálogo de varejo, relatório do
+// setor). Um produto pode ter mais de uma fonte.
+model ProductSource {
+  id          String   @id @default(cuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  sourceType  String
+  sourceName  String
+  url         String?
+  note        String?  @db.Text
+  collectedAt DateTime @default(now())
+
+  @@index([productId])
+  @@map("product_sources")
+}
+
+// Pontuação de relevância comercial do produto. Nunca contém números
+// inventados: quando não há dado quantitativo (o caso mais comum), usa a
+// classificação HIGH/MEDIUM/LOW e registra a fonte usada.
+model ProductScore {
+  id                  String     @id @default(cuid())
+  product             Product    @relation(fields: [productId], references: [id])
+  productId           String     @unique
+  popularity          ScoreLevel
+  salesVolume         ScoreLevel
+  availability        ScoreLevel
+  relevance           ScoreLevel
+  distributorPresence ScoreLevel
+  retailerPresence    ScoreLevel
+  regionalRelevance   ScoreLevel
+  overall             ScoreLevel
+  source              String     @db.Text
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@map("product_scores")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  url       String
+  altText   String?
+  position  Int     @default(0)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ============================================================================
+// Estoque
+// ============================================================================
+
+model StockItem {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String   @unique
+  quantity  Int      @default(0)
+  reserved  Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("stock_items")
+}
+
+// ============================================================================
+// Carrinho
+// ============================================================================
+
+model Cart {
+  id        String     @id @default(cuid())
+  user      User?      @relation(fields: [userId], references: [id])
+  userId    String?    @unique
+  sessionId String?    @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  cartId    String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int     @default(1)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+// ============================================================================
+// Pedidos, pagamentos, frete e cupons
+// ============================================================================
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  // Número curto e amigável exibido ao cliente (ex: "PM-A1B2C3"), distinto
+  // do id interno (cuid).
+  orderNumber  String      @unique
+  user         User        @relation(fields: [userId], references: [id])
+  userId       String
+  address      Address     @relation(fields: [addressId], references: [id])
+  addressId    String
+  status       OrderStatus @default(PENDING)
+  items        OrderItem[]
+  payment      Payment?
+  shipment     Shipment?
+  coupon       Coupon?     @relation(fields: [couponId], references: [id])
+  couponId     String?
+  subtotal     Decimal     @default(0) @db.Decimal(10, 2)
+  shippingCost Decimal     @default(0) @db.Decimal(10, 2)
+  discount     Decimal     @default(0) @db.Decimal(10, 2)
+  total        Decimal     @default(0) @db.Decimal(10, 2)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([addressId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PIX
+  BOLETO
+  DIGITAL_WALLET
+}
+
+// Espelha os estados possíveis de uma cobrança no gateway (ver
+// src/lib/payment/payment-types.ts). Um pedido só é considerado PAID quando
+// o servidor recebe e valida a confirmação oficial do gateway (webhook) —
+// nunca com base apenas na resposta do frontend.
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  EXPIRED
+}
+
+model Payment {
+  id      String        @id @default(cuid())
+  order   Order         @relation(fields: [orderId], references: [id])
+  orderId String        @unique
+  method  PaymentMethod
+  status  PaymentStatus @default(PENDING)
+  amount  Decimal       @db.Decimal(10, 2)
+
+  // Qual gateway processou (ex: "pagarme") e o identificador do pedido/
+  // cobrança nesse gateway — nunca dados sensíveis de cartão.
+  gateway    String
+  externalId String? @unique
+
+  // Cartão: apenas metadados não sensíveis (nunca o número completo).
+  cardBrand    String?
+  cardLastFour String?
+  installments Int?
+
+  // Pix: dados para exibir o QR code dentro do próprio checkout.
+  pixQrCode    String?   @db.Text
+  pixQrCodeUrl String?
+  pixExpiresAt DateTime?
+
+  events    PaymentEvent[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("payments")
+}
+
+// Registro de cada evento recebido do gateway (webhook), para conciliação e
+// idempotência: o mesmo externalEventId nunca é processado duas vezes.
+model PaymentEvent {
+  id              String   @id @default(cuid())
+  payment         Payment  @relation(fields: [paymentId], references: [id])
+  paymentId       String
+  externalEventId String   @unique
+  eventType       String
+  payload         Json
+  processed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([paymentId])
+  @@map("payment_events")
+}
+
+enum ShipmentStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+}
+
+model Shipment {
+  id            String          @id @default(cuid())
+  order         Order           @relation(fields: [orderId], references: [id])
+  orderId       String          @unique
+  // Modalidade escolhida no checkout (ex: "PAC", "Sedex").
+  method        String?
+  carrier       String?
+  price         Decimal         @default(0) @db.Decimal(10, 2)
+  trackingCode  String?
+  status        ShipmentStatus  @default(PENDING)
+  estimatedDate DateTime?
+  events        TrackingEvent[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("shipments")
+}
+
+// Rastreamento do pedido
+model TrackingEvent {
+  id          String   @id @default(cuid())
+  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+  shipmentId  String
+  status      String
+  description String?
+  occurredAt  DateTime @default(now())
+
+  @@index([shipmentId])
+  @@map("tracking_events")
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+model Coupon {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  type      CouponType
+  value     Decimal    @db.Decimal(10, 2)
+  isActive  Boolean    @default(true)
+  expiresAt DateTime?
+  orders    Order[]
+
+  @@map("coupons")
+}
+
+// ============================================================================
+// Avaliações
+// ============================================================================
+
+model Review {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@map("reviews")
+}
+
+// ============================================================================
+// Analytics
+// ============================================================================
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  type      String
+  payload   Json?
+  sessionId String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@map("analytics_events")
+}

@@ -1,0 +1,11 @@
+-- AlterEnum
+ALTER TYPE "VehicleType" ADD VALUE 'TRUCK_BUS';
+
+-- AlterTable
+ALTER TABLE "products" ALTER COLUMN "aspectRatio" DROP NOT NULL,
+ALTER COLUMN "rim" SET DATA TYPE DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "tire_sizes" ALTER COLUMN "aspectRatio" DROP NOT NULL,
+ALTER COLUMN "rimDiameter" SET DATA TYPE DOUBLE PRECISION;
+
