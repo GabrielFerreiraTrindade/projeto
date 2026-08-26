@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  PostgreSQL database (RDS) for PneuMinas, ready to use as the Prisma
+  DATABASE_URL. Free-tier eligible instance (db.t3.micro), publicly
+  accessible (needed because AWS Amplify Hosting does not run inside your
+  VPC). Uses the account's default security group - after the stack is
+  created, add an inbound rule for port 5432 to that security group.
+
+Parameters:
+  MasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Master database password (save it, you will need it for DATABASE_URL).
+
+Resources:
+  PneusEcommerceDb:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: pneus-ecommerce-db
+      Engine: postgres
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      StorageType: gp2
+      DBName: pneus_ecommerce
+      MasterUsername: postgres
+      MasterUserPassword: !Ref MasterPassword
+      PubliclyAccessible: true
+      BackupRetentionPeriod: 1
+
+Outputs:
+  DatabaseEndpoint:
+    Description: Database host - use it in DATABASE_URL.
+    Value: !GetAtt PneusEcommerceDb.Endpoint.Address
+  DatabasePort:
+    Description: Database port.
+    Value: !GetAtt PneusEcommerceDb.Endpoint.Port
