@@ -45,5 +45,8 @@ next-env.d.ts
 # armazenamento local mock de autenticação (contém dados de usuários)
 /.data
 
-# estado local da ferramenta Claude Code (não é conteúdo do projeto)
-/.claude/scheduled_tasks.lock
+# estado local e config da ferramenta Claude Code (não é conteúdo do
+# projeto - fica só na máquina de quem usa a ferramenta)
+/.claude/
+CLAUDE.md
+AGENTS.md
