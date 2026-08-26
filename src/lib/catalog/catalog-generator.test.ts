@@ -23,7 +23,7 @@ describe("generateCatalog", () => {
     }
   });
 
-  it("usa somente as 10 marcas prioritárias configuradas", () => {
+  it("usa somente as marcas prioritárias configuradas", () => {
     const products = generateCatalog();
     const brandsUsed = new Set(products.map((product) => product.brandName));
     for (const brand of brandsUsed) {

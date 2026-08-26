@@ -23,11 +23,12 @@ export const TOP_TIRE_BRANDS = [
   "Firestone",
   "Hankook",
   "Xbri",
+  "Westlake",
 ] as const;
 
 export type TopTireBrand = (typeof TOP_TIRE_BRANDS)[number];
 
-export const TOP_BRANDS_LIMIT = 10;
+export const TOP_BRANDS_LIMIT = 11;
 
 if (TOP_TIRE_BRANDS.length !== TOP_BRANDS_LIMIT) {
   throw new Error(

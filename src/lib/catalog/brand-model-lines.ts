@@ -201,4 +201,22 @@ export const BRAND_MODEL_LINES: Record<string, [BrandModelLine, BrandModelLine]>
         "Loja oficial (xbri.com.br) vende Sport Plus 2 apenas em aro 16 a 20, perfis baixos/esportivos (205/50R16, 225/55R17, 235/50R18, 245/45R19, 205/35R20) — nunca em aros de carro popular pequeno.",
     },
   ],
+  Westlake: [
+    {
+      name: "RP28",
+      positioning: "economy",
+      minRim: 14,
+      maxRim: 16,
+      evidence:
+        "Catálogo oficial (westlakepneus.com.br) lista o RP28 de aro 13 a 16 (175/70R14, 185/65R15, 195/60R15, 205/55R16, entre outras) — linha de entrada para carro de passeio, sem evidência de aro maior.",
+    },
+    {
+      name: "SU318",
+      positioning: "premium",
+      minRim: 15,
+      maxRim: 20,
+      evidence:
+        "Catálogo oficial (westlakepneus.com.br) lista o SU318 de aro 15 a 20 (225/65R17, 235/60R18, 255/55R19, 275/55R20, entre outras) — linha SUV/LTR premium 'para aplicação em estradas pavimentadas', não fabricada em aros de carro popular pequeno.",
+    },
+  ],
 };

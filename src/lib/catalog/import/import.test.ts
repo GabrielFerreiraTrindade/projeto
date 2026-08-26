@@ -65,7 +65,7 @@ describe("import de catálogo — validação", () => {
   it("rejeita marca fora de TOP_TIRE_BRANDS", async () => {
     const report = await validateImportRows([row({ brand: "MarcaDesconhecidaXYZ" })]);
     expect(report.results[0].status).toBe("rejected");
-    expect(report.results[0].reasons.join(" ")).toMatch(/não está entre as 10 marcas prioritárias/);
+    expect(report.results[0].reasons.join(" ")).toMatch(/não está entre as \d+ marcas prioritárias/);
   });
 
   it("rejeita campos obrigatórios ausentes", async () => {

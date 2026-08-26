@@ -1,8 +1,8 @@
 // Pneus comerciais de van/utilitário (ex: Kombi, furgões leves) — medida
 // sem número de perfil (ex: "185R14C", onde "C" = reforçado/comercial),
 // diferente do formato largura/perfil/aro dos pneus de carro. Só a Xbri
-// tem linha documentada nessa categoria dentre as 10 marcas do catálogo —
-// as outras 9 não vendem pneu de van no Brasil segundo a pesquisa feita.
+// tem linha documentada nessa categoria dentre as marcas do catálogo —
+// as outras não vendem pneu de van no Brasil segundo a pesquisa feita.
 //
 // price: nenhum varejista pesquisado (Xbri oficial, PneuBest, Pneuar,
 // Atacadão) expôs o preço em texto indexável na busca — valor estimado por

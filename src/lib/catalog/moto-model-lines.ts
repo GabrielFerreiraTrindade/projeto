@@ -1,11 +1,11 @@
 // Pesquisa de pneus de moto — segmento novo, nunca pesquisado antes nesta
 // loja. Primeira rodada: marcas com evidência real de linha de moto vendida
-// no Brasil dentre as 10 marcas do catálogo (TOP_TIRE_BRANDS): Pirelli,
+// no Brasil dentre as marcas do catálogo (TOP_TIRE_BRANDS): Pirelli,
 // Michelin e Dunlop. Continental tem presença de moto documentada em
 // Portugal (ContiMotion) e um recall de pneu de moto no Brasil, mas nenhuma
 // linha específica com medida confirmada à venda no Brasil — não incluída
-// para não inventar. Xbri, Goodyear, Bridgestone, Firestone, Hankook e
-// Yokohama não têm linha de moto documentada no Brasil.
+// para não inventar. Xbri, Goodyear, Bridgestone, Firestone, Hankook,
+// Yokohama e Westlake não têm linha de moto documentada no Brasil.
 //
 // Segunda rodada: Levorin e Rinaldi, as duas marcas brasileiras que mais
 // vendem pneu pra moto popular (CG/Titan/Fan/YBR) — maiores em volume nesse

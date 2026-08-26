@@ -7,12 +7,12 @@
 // priorizamos as versões radiais métricas equivalentes, que cobrem os
 // mesmos tratores de grande porte.
 //
-// Só 3 das 10 marcas do catálogo têm linha agrícola documentada à venda no
+// Só 3 das marcas do catálogo têm linha agrícola documentada à venda no
 // Brasil: Pirelli, Goodyear e Firestone — as "melhores"/mais tradicionais do
 // segmento no país (Firestone historicamente é a marca mais associada a
 // pneu de trator no Brasil; Goodyear e Pirelli têm linhas agrícolas
-// robustas e catálogo local). As outras 7 marcas do catálogo (Michelin,
-// Continental, Bridgestone, Yokohama, Dunlop, Hankook, Xbri) não têm linha
+// robustas e catálogo local). As outras marcas do catálogo (Michelin,
+// Continental, Bridgestone, Yokohama, Dunlop, Hankook, Xbri, Westlake) não têm linha
 // agrícola/OTR documentada à venda no Brasil.
 export type AgroSize = {
   width: number;

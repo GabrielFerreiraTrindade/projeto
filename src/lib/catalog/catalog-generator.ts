@@ -7,7 +7,7 @@ import {
 } from "@/lib/catalog/top-brands";
 
 // Gera o catálogo inicial: para cada medida pesquisada (TIRE_SIZE_DEMAND_SEED)
-// e cada uma das 10 marcas (TOP_TIRE_BRANDS), cria no máximo
+// e cada marca prioritária (TOP_TIRE_BRANDS), cria no máximo
 // MAX_MODELS_PER_BRAND_PER_SIZE produtos (as 2 linhas fixas da marca, ver
 // BRAND_MODEL_LINES). Isso já garante a regra fundamental na origem dos
 // dados — a constraint @@unique([brandId, sizeId, rankingPosition]) no

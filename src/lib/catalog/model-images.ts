@@ -5,7 +5,7 @@
 // modelo de pneu dessa marca").
 //
 // Base legal: o cliente (dono desta loja) confirmou ser parceiro/revendedor
-// autorizado das 10 marcas do catálogo e ter permissão para usar as fotos
+// autorizado das marcas do catálogo e ter permissão para usar as fotos
 // publicadas pelos próprios fabricantes para fins de venda dos produtos.
 // As imagens abaixo foram obtidas diretamente do site oficial de cada
 // fabricante (ou de sua loja oficial no Brasil) nessa condição — ver
@@ -249,5 +249,20 @@ export const MODEL_IMAGES: ModelImageSet[] = [
     tireModelSlug: "php-70",
     sourceUrl: "https://www.bellenzier.com.br/pneu-710-70r38-php-70-r-1w-171d-tl-aro-38-agricola-pirelli.html",
     images: ["/product-images/pirelli/php-70/1.webp"],
+  },
+
+  // Terceira rodada: entrada da marca Westlake no catálogo (11ª marca,
+  // ver top-brands.ts). Fotos coletadas do site oficial da marca no Brasil.
+  {
+    brandName: "Westlake",
+    tireModelSlug: "rp28",
+    sourceUrl: "https://www.westlakepneus.com.br/pt/index.php/productcars/info/PassengerCars/9",
+    images: ["/product-images/westlake/rp28/1.png"],
+  },
+  {
+    brandName: "Westlake",
+    tireModelSlug: "su318",
+    sourceUrl: "https://www.westlakepneus.com.br/pt/index.php/productcars/info/PassengerCars/su318/411",
+    images: ["/product-images/westlake/su318/1.png"],
   },
 ];
