@@ -4,18 +4,22 @@ import { Container } from "@/components/ui/container";
 import { ProductCard } from "@/components/product/product-card";
 import type { Product } from "@/types/catalog";
 
+import { ProductCarousel } from "./product-carousel";
+
 export function ProductSection({
   title,
   description,
   products,
   tone = "default",
   viewAllHref,
+  layout = "grid",
 }: {
   title: string;
   description?: string;
   products: Product[];
   tone?: "default" | "muted";
   viewAllHref?: string;
+  layout?: "grid" | "carousel";
 }) {
   return (
     <section className={tone === "muted" ? "bg-secondary" : undefined}>
@@ -36,11 +40,15 @@ export function ProductSection({
             </Link>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {layout === "carousel" ? (
+          <ProductCarousel products={products} />
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </Container>
     </section>
   );
