@@ -7,19 +7,7 @@ frontend:
     build:
       commands:
         - npm run build
-        - |
-          cat <<EOF > .next/.env.production
-          DATABASE_URL=$DATABASE_URL
-          AUTH_SECRET=$AUTH_SECRET
-          NEXT_PUBLIC_SITE_NAME=$NEXT_PUBLIC_SITE_NAME
-          NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-          PAYMENT_PROVIDER=$PAYMENT_PROVIDER
-          PAGARME_API_KEY=$PAGARME_API_KEY
-          NEXT_PUBLIC_PAGARME_PUBLIC_KEY=$NEXT_PUBLIC_PAGARME_PUBLIC_KEY
-          PAGARME_WEBHOOK_USER=$PAGARME_WEBHOOK_USER
-          PAGARME_WEBHOOK_PASSWORD=$PAGARME_WEBHOOK_PASSWORD
-          NEXT_PUBLIC_MAX_INSTALLMENTS=$NEXT_PUBLIC_MAX_INSTALLMENTS
-          EOF
+        - node -e "const fs=require('fs');const keys=['DATABASE_URL','AUTH_SECRET','NEXT_PUBLIC_SITE_NAME','NEXT_PUBLIC_SITE_URL','PAYMENT_PROVIDER','PAGARME_API_KEY','NEXT_PUBLIC_PAGARME_PUBLIC_KEY','PAGARME_WEBHOOK_USER','PAGARME_WEBHOOK_PASSWORD','NEXT_PUBLIC_MAX_INSTALLMENTS'];const out={};for(const k of keys){if(process.env[k])out[k]=process.env[k];}fs.writeFileSync('.next/runtime-env.json', JSON.stringify(out));console.log('runtime-env.json keys:', Object.keys(out));"
   artifacts:
     baseDirectory: .next
     files:
