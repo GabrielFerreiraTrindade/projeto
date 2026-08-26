@@ -4,10 +4,10 @@ frontend:
     preBuild:
       commands:
         - npm ci --cache .npm --prefer-offline
+        - node -e "const fs=require('fs');const keys=['DATABASE_URL','AUTH_SECRET','NEXT_PUBLIC_SITE_NAME','NEXT_PUBLIC_SITE_URL','PAYMENT_PROVIDER','PAGARME_API_KEY','NEXT_PUBLIC_PAGARME_PUBLIC_KEY','PAGARME_WEBHOOK_USER','PAGARME_WEBHOOK_PASSWORD','NEXT_PUBLIC_MAX_INSTALLMENTS'];const out={};for(const k of keys){if(process.env[k])out[k]=process.env[k];}const content='// Gerado pelo build da Amplify - nao editar, nao commitar valores reais.\nexport const RUNTIME_ENV: Record<string, string> = '+JSON.stringify(out)+';\n';fs.writeFileSync('src/generated-runtime-env.ts', content);console.log('generated-runtime-env.ts keys:', Object.keys(out));"
     build:
       commands:
         - npm run build
-        - node -e "const fs=require('fs');const keys=['DATABASE_URL','AUTH_SECRET','NEXT_PUBLIC_SITE_NAME','NEXT_PUBLIC_SITE_URL','PAYMENT_PROVIDER','PAGARME_API_KEY','NEXT_PUBLIC_PAGARME_PUBLIC_KEY','PAGARME_WEBHOOK_USER','PAGARME_WEBHOOK_PASSWORD','NEXT_PUBLIC_MAX_INSTALLMENTS'];const out={};for(const k of keys){if(process.env[k])out[k]=process.env[k];}fs.writeFileSync('.next/runtime-env.json', JSON.stringify(out));console.log('runtime-env.json keys:', Object.keys(out));"
   artifacts:
     baseDirectory: .next
     files:
