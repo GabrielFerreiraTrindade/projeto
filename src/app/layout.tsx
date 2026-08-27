@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: `${siteConfig.name} — Pneus para todo o estado de Minas Gerais`,
+    default: `PneuGreen | Loja de Pneus das Melhores Marcas`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
