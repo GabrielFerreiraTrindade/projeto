@@ -1,0 +1,16 @@
+{
+  "name": "olx-scraper",
+  "version": "1.0.0",
+  "description": "Busca anuncios de carros na OLX e salva as URLs (e outros dados) em CSV",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "olx-scraper": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}
