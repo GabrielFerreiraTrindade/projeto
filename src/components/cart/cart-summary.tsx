@@ -1,8 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
+import { buttonVariants } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 import { CartShippingForm } from "./cart-shipping-form";
 
@@ -52,14 +54,9 @@ export function CartSummary() {
         </span>
       </div>
 
-      <Button
-        size="lg"
-        disabled
-        className="w-full"
-        title="Pagamento ainda não implementado"
-      >
+      <Link href="/checkout" className={cn(buttonVariants({ size: "lg" }), "w-full")}>
         Finalizar compra
-      </Button>
+      </Link>
     </aside>
   );
 }
