@@ -16,7 +16,9 @@ Toda a integração passa por uma camada de abstração em `src/lib/payment/`:
   `getPayment`, `cancelPayment`, `refundPayment`, `processWebhook`) e a fábrica
   `getPaymentProvider()`, que escolhe a implementação pela variável de ambiente
   `PAYMENT_PROVIDER`.
-- `providers/pagarme.ts` — implementação real, usada hoje.
+- `providers/pagarme.ts` — cartão de crédito e Pix.
+- `providers/payonpag.ts` — só Pix (a API do PayOnPag hoje não documenta
+  cartão de crédito — ver seção 9).
 - `providers/mercadopago.ts`, `providers/picpay.ts` — apenas esqueleto
   (lançam erro se chamados). Não foram implementados porque a documentação
   oficial de cada um não foi consultada ainda (ver regra do projeto: nunca
@@ -118,11 +120,50 @@ pago de verdade (o frontend nunca decide isso sozinho).
 3. Confirme com o Pagar.me quais taxas/parcelamento estão habilitados na conta
    de produção antes de anunciar parcelamento ao cliente.
 
+## 9. PayOnPag (Pix)
+
+Alternativa ao Pagar.me, mas **só processa Pix** — a documentação oficial
+(`api.payonpag.io/integration/docs/api`) diz literalmente "método de
+pagamento (atualmente apenas PIX)". Por isso o checkout desativa a aba de
+cartão quando esse provider está ativo (`CARD_PAYMENTS_ENABLED = false` em
+`src/app/checkout/step-payment.tsx` — reverta pra `true` só quando o cartão
+tiver um gateway real configurado).
+
+1. No painel do PayOnPag, vá em **Integrações → Chaves de API** e gere/copie
+   uma chave.
+2. Variáveis de ambiente:
+
+   | Variável | Onde usar | Onde obter |
+   |---|---|---|
+   | `PAYMENT_PROVIDER` | Servidor | `payonpag` |
+   | `PAYONPAG_API_SECRET` | Servidor (nunca frontend) | Chave de API do painel |
+   | `PAYONPAG_WEBHOOK_SECRET` | Servidor | Qualquer valor aleatório forte, definido por você (ver abaixo) |
+
+3. **Webhook**: o PayOnPag não documenta assinatura de payload nem um
+   endpoint de webhook fixo por conta — a URL é enviada por nós em cada
+   transação (`webhook_url` no corpo da requisição). Por isso a
+   autenticidade é validada embutindo `PAYONPAG_WEBHOOK_SECRET` na própria
+   URL (`.../api/webhooks/payment?secret=...`), não por um header do
+   PayOnPag — ver `assertWebhookAuthenticity` em
+   `src/lib/payment/providers/payonpag.ts`. Não precisa cadastrar nada no
+   painel deles pra isso funcionar.
+4. Endpoints usados (confirmados na documentação oficial, não inventados):
+   `POST /v1/transactions` (criar Pix) e `GET /v1/transactions/{id}`
+   (consultar status). **Não existe** endpoint documentado de
+   cancelamento/estorno de uma transação específica — só um `/v1/cashout`
+   pra sacar saldo da própria conta, que é outra coisa. `cancelPayment` e
+   `refundPayment` lançam erro nesse provider.
+
 ## 8. Limitações já identificadas (não inventadas, verificadas na documentação)
 
-- **Webhook**: o Pagar.me não documenta assinatura HMAC de payload; a
-  autenticidade é validada só por Basic Auth na URL do webhook. Isso já está
-  implementado assim propositalmente.
+- **Webhook (Pagar.me)**: o Pagar.me não documenta assinatura HMAC de
+  payload; a autenticidade é validada só por Basic Auth na URL do webhook.
+  Isso já está implementado assim propositalmente.
+- **Webhook (PayOnPag)**: mesma situação, sem assinatura documentada — ver
+  seção 9 para como a autenticidade é validada nesse caso (segredo na query
+  string da webhook_url).
+- **PayOnPag não tem cartão de crédito** nem cancelamento/estorno
+  documentados — ver seção 9.
 - **Mercado Pago e PicPay**: ainda não têm implementação real — os arquivos em
   `src/lib/payment/providers/mercadopago.ts` e `picpay.ts` lançam erro se
   usados. Antes de ativá-los, é necessário consultar a documentação oficial de

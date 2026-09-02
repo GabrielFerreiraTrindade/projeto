@@ -48,6 +48,8 @@ export type SubmitCheckoutInput = {
   customer: CheckoutCustomer;
   shipping: CheckoutShipping;
   payment: CheckoutPaymentChoice;
+  /** IP do cliente — exigido pelo PayOnPag, repassado direto pra CreatePaymentInput. */
+  customerIp?: string;
 };
 
 export type SubmitCheckoutResult = {
@@ -120,6 +122,7 @@ export async function submitCheckout(
   const paymentInput: CreatePaymentInput = {
     orderId: order.id,
     amountInCents,
+    customerIp: input.customerIp,
     customer: {
       name: input.customer.name,
       email: input.customer.email,

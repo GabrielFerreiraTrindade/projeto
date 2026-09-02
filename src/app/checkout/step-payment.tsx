@@ -25,6 +25,14 @@ export type PaymentSelection =
 
 const MAX_INSTALLMENTS = Number(process.env.NEXT_PUBLIC_MAX_INSTALLMENTS ?? 12);
 
+// Cartão de crédito desativado no checkout: o gateway configurado
+// (PayOnPag) só processa Pix — ver src/lib/payment/providers/payonpag.ts.
+// Reverter pra `true` assim que houver um gateway de cartão configurado
+// (o formulário abaixo continua pronto, só fica escondido).
+const CARD_PAYMENTS_ENABLED = false;
+const CARD_UNAVAILABLE_MESSAGE =
+  "O pagamento por cartão de crédito está indisponível no momento. Por favor, finalize sua compra usando Pix.";
+
 function formatCardNumber(value: string) {
   return value
     .replace(/\D/g, "")
@@ -116,7 +124,19 @@ export function StepPayment({
           {
             value: "card",
             label: "Cartão de crédito",
-            content: (
+            content: !CARD_PAYMENTS_ENABLED ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                  <AlertCircle className="h-6 w-6 shrink-0 text-destructive" aria-hidden />
+                  <p className="text-sm text-destructive">{CARD_UNAVAILABLE_MESSAGE}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={onBack}>
+                    Voltar
+                  </Button>
+                </div>
+              </div>
+            ) : (
               <form onSubmit={handleCardSubmit} className="flex flex-col gap-4">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <CreditCard className="h-4 w-4" aria-hidden />

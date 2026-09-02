@@ -48,11 +48,6 @@ export const PRODUCT_INCLUDE = {
 
 export type ProductWithRelations = Prisma.ProductGetPayload<{ include: typeof PRODUCT_INCLUDE }>;
 
-function toInstallments(price: number) {
-  const count = price >= 500 ? 10 : price >= 300 ? 8 : 6;
-  return { count, value: Math.round((price / count) * 100) / 100 };
-}
-
 function toAvailability(quantity: number): Tire["availability"] {
   if (quantity <= 0) return "out_of_stock";
   if (quantity <= 3) return "low_stock";
@@ -86,7 +81,10 @@ export function toTire(product: ProductWithRelations): Tire {
     category: product.category.slug as ProductCategory,
     price,
     compareAtPrice,
-    installments: toInstallments(price),
+    // Cartão de crédito está desativado no checkout no momento (ver
+    // src/lib/payment/providers/payonpag.ts) — sem parcelamento, não mostra
+    // "ou Nx sem juros" no card/página do produto.
+    installments: undefined,
     rating,
     reviewCount,
     isOffer: compareAtPrice != null,

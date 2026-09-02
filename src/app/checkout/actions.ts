@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { PaymentMethodUnsupportedError } from "@/lib/payment/payment-provider";
 import {
   OutOfStockError,
   submitCheckout,
@@ -28,6 +30,16 @@ const GENERIC_ERROR =
   "Não conseguimos processar o pagamento agora. Tente novamente.";
 const DECLINED_ERROR =
   "Não foi possível aprovar o pagamento. Verifique os dados ou tente outra forma de pagamento.";
+const CARD_UNAVAILABLE_ERROR =
+  "O pagamento por cartão de crédito está indisponível no momento. Por favor, finalize sua compra usando Pix.";
+
+// x-forwarded-for pode trazer uma lista "cliente, proxy1, proxy2" — o
+// primeiro IP é o do cliente original.
+async function getClientIp(): Promise<string | undefined> {
+  const headerList = await headers();
+  const forwardedFor = headerList.get("x-forwarded-for");
+  return forwardedFor?.split(",")[0]?.trim();
+}
 
 export async function submitCheckoutAction(
   payload: SubmitCheckoutPayload,
@@ -50,6 +62,7 @@ export async function submitCheckoutAction(
       customer: payload.customer,
       shipping: payload.shipping,
       payment: payload.payment,
+      customerIp: await getClientIp(),
     });
     orderId = order.id;
 
@@ -62,6 +75,9 @@ export async function submitCheckoutAction(
       return {
         error: `"${error.productSlug}" ficou sem estoque suficiente. Ajuste as quantidades no carrinho e tente novamente.`,
       };
+    }
+    if (error instanceof PaymentMethodUnsupportedError) {
+      return { error: CARD_UNAVAILABLE_ERROR };
     }
     return { error: GENERIC_ERROR };
   }

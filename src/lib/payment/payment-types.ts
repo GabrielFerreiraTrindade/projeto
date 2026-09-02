@@ -44,6 +44,8 @@ export type CreatePaymentInput = {
   customer: PaymentCustomer;
   items: PaymentLineItem[];
   payment: CreditCardPaymentInput | PixPaymentInput;
+  /** IP do cliente no momento da compra. Exigido pelo PayOnPag; outros gateways ignoram. */
+  customerIp?: string;
 };
 
 export type PixPaymentData = {
@@ -99,4 +101,6 @@ export type WebhookProcessResult = {
 export type IncomingWebhookRequest = {
   headers: Headers;
   rawBody: string;
+  /** URL completa da requisição — usada pelo PayOnPag, que não documenta assinatura de webhook e em vez disso valida um segredo embutido na query string da própria webhook_url configurada por transação. */
+  url: string;
 };

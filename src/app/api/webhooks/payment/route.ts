@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     event = await provider.processWebhook({
       headers: request.headers,
       rawBody,
+      url: request.url,
     });
   } catch (error) {
     if (error instanceof PaymentWebhookAuthError) {

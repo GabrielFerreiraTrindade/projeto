@@ -49,6 +49,19 @@ export class PaymentProviderError extends Error {
   }
 }
 
+/**
+ * O provider configurado não suporta o método de pagamento pedido (ex:
+ * cartão de crédito no PayOnPag, que hoje só processa Pix). Distinto de
+ * PaymentProviderError pra o checkout poder mostrar uma mensagem
+ * específica de "indisponível" em vez do erro genérico de pagamento.
+ */
+export class PaymentMethodUnsupportedError extends PaymentProviderError {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaymentMethodUnsupportedError";
+  }
+}
+
 let cachedProvider: PaymentProvider | null = null;
 
 /** Resolve o provider configurado em PAYMENT_PROVIDER (padrão: "pagarme"). */
@@ -71,6 +84,11 @@ export async function getPaymentProvider(): Promise<PaymentProvider> {
     case "picpay": {
       const { PicPayProvider } = await import("./providers/picpay");
       cachedProvider = new PicPayProvider();
+      return cachedProvider;
+    }
+    case "payonpag": {
+      const { PayOnPagProvider } = await import("./providers/payonpag");
+      cachedProvider = new PayOnPagProvider();
       return cachedProvider;
     }
     default:
