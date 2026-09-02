@@ -132,11 +132,26 @@ export async function submitCheckout(
         number: input.customer.phoneNumber,
       },
     },
-    items: priced.map((line) => ({
-      description: line.name,
-      quantity: line.quantity,
-      amountInCents: Math.round(line.unitPrice * 100),
-    })),
+    // O frete entra como um item à parte pra soma dos itens sempre bater
+    // com amountInCents (alguns gateways validam isso) — o desconto já
+    // está absorvido no unitPrice de cada linha (ver resolvePricedLines),
+    // não precisa de item negativo separado pra ele.
+    items: [
+      ...priced.map((line) => ({
+        description: line.name,
+        quantity: line.quantity,
+        amountInCents: Math.round(line.unitPrice * 100),
+      })),
+      ...(input.shipping.price > 0
+        ? [
+            {
+              description: "Frete",
+              quantity: 1,
+              amountInCents: Math.round(input.shipping.price * 100),
+            },
+          ]
+        : []),
+    ],
     payment:
       input.payment.method === "PIX"
         ? { method: "PIX", expiresInSeconds: PIX_EXPIRATION_SECONDS }
