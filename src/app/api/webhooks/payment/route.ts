@@ -134,3 +134,15 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ received: true });
 }
+
+// Alguns gateways fazem uma checagem de alcançabilidade (GET/HEAD) na
+// webhook_url antes de aceitar a cobrança — sem isso a rota só aceitava
+// POST e devolvia 405. Só confirma que a URL existe; não processa evento
+// nenhum (a confirmação de pagamento sempre vem pelo POST, verificado).
+export async function GET() {
+  return NextResponse.json({ ok: true });
+}
+
+export async function HEAD() {
+  return new NextResponse(null, { status: 200 });
+}
