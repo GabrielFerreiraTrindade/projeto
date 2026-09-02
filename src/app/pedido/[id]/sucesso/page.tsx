@@ -29,9 +29,12 @@ export default async function OrderSuccessPage({
 
   const payment = order.payment;
   const isPix = payment?.method === "PIX";
-  const hasPixQrData = Boolean(
-    payment?.pixQrCode && payment?.pixQrCodeUrl && payment?.pixExpiresAt,
-  );
+  // qrCodeUrl é opcional de propósito: alguns gateways (ex: PayOnPag) só
+  // devolvem o código Pix "copia e cola", sem uma imagem pronta do QR —
+  // PixPaymentStatus já lida bem com qrCodeUrl vazio (só não mostra a
+  // imagem). Exigir os três campos aqui descartava um Pix válido só por
+  // faltar a URL da imagem.
+  const hasPixQrData = Boolean(payment?.pixQrCode && payment?.pixExpiresAt);
 
   return (
     <Container className="flex flex-col gap-8 py-8 sm:py-12">
@@ -51,11 +54,11 @@ export default async function OrderSuccessPage({
 
       {isPix && payment && (
         <div className="mx-auto w-full max-w-md">
-          {hasPixQrData && payment.pixQrCode && payment.pixQrCodeUrl && payment.pixExpiresAt ? (
+          {hasPixQrData && payment.pixQrCode && payment.pixExpiresAt ? (
             <PixPaymentStatus
               orderId={order.id}
               qrCode={payment.pixQrCode}
-              qrCodeUrl={payment.pixQrCodeUrl}
+              qrCodeUrl={payment.pixQrCodeUrl ?? ""}
               amount={Number(order.total)}
               expiresAt={payment.pixExpiresAt.toISOString()}
               initialStatus={payment.status}
