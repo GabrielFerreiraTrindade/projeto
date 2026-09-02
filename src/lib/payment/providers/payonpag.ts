@@ -138,7 +138,10 @@ type PayOnPagTransaction = {
   pix?: PayOnPagPix;
 };
 
-function toPixData(pix: PayOnPagPix | undefined): PixPaymentData | undefined {
+function toPixData(
+  pix: PayOnPagPix | undefined,
+  fallbackExpiresAt: string,
+): PixPaymentData | undefined {
   if (!pix) return undefined;
   const qrCode = typeof pix === "string" ? pix : (pix.payload ?? pix.qr_code);
   if (!qrCode) return undefined;
@@ -146,12 +149,18 @@ function toPixData(pix: PayOnPagPix | undefined): PixPaymentData | undefined {
   return {
     qrCode,
     qrCodeUrl: typeof pix === "object" ? (pix.qr_code_url ?? "") : "",
-    expiresAt:
-      (typeof pix === "object" ? pix.expires_at : undefined) ?? new Date().toISOString(),
+    // A doc não documenta um campo de expiração na resposta (nem aceita um
+    // na criação da transação) — usamos o prazo que a própria loja definiu
+    // (PIX_EXPIRATION_SECONDS, ver checkout-service.ts) como aproximação,
+    // nunca "agora" (isso expirava o Pix na hora, no primeiro render).
+    expiresAt: (typeof pix === "object" ? pix.expires_at : undefined) ?? fallbackExpiresAt,
   };
 }
 
-function toPaymentResult(transaction: PayOnPagTransaction): PaymentResult {
+function toPaymentResult(
+  transaction: PayOnPagTransaction,
+  fallbackExpiresAt: string,
+): PaymentResult {
   const amount = transaction.total_value ?? transaction.total_amount ?? 0;
 
   return {
@@ -160,7 +169,7 @@ function toPaymentResult(transaction: PayOnPagTransaction): PaymentResult {
     status: mapStatus(transaction.status),
     method: "PIX",
     amountInCents: Math.round(amount * 100),
-    pix: toPixData(transaction.pix),
+    pix: toPixData(transaction.pix, fallbackExpiresAt),
     raw: transaction,
   };
 }
@@ -207,7 +216,10 @@ export class PayOnPagProvider implements PaymentProvider {
     };
 
     const json = await payonpagFetch("/transactions", { method: "POST", body });
-    const result = toPaymentResult(json as unknown as PayOnPagTransaction);
+    const fallbackExpiresAt = new Date(
+      Date.now() + input.payment.expiresInSeconds * 1000,
+    ).toISOString();
+    const result = toPaymentResult(json as unknown as PayOnPagTransaction, fallbackExpiresAt);
 
     // Sem QR code o cliente não tem como pagar — melhor falhar alto (e
     // registrar a resposta crua pra depuração) do que devolver um "sucesso"
@@ -227,7 +239,12 @@ export class PayOnPagProvider implements PaymentProvider {
 
   async getPayment(externalId: string): Promise<PaymentResult> {
     const json = await payonpagFetch(`/transactions/${externalId}`, { method: "GET" });
-    return toPaymentResult(json as unknown as PayOnPagTransaction);
+    // Consulta de status não tem o expiresInSeconds original à mão — o
+    // chamador já guarda o pixExpiresAt real da criação, então esse
+    // fallback só entra em jogo num caso de borda (nunca é o que decide a
+    // contagem regressiva mostrada ao cliente).
+    const fallbackExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    return toPaymentResult(json as unknown as PayOnPagTransaction, fallbackExpiresAt);
   }
 
   async cancelPayment(input: CancelPaymentInput): Promise<PaymentResult> {
