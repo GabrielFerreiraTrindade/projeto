@@ -207,7 +207,22 @@ export class PayOnPagProvider implements PaymentProvider {
     };
 
     const json = await payonpagFetch("/transactions", { method: "POST", body });
-    return toPaymentResult(json as unknown as PayOnPagTransaction);
+    const result = toPaymentResult(json as unknown as PayOnPagTransaction);
+
+    // Sem QR code o cliente não tem como pagar — melhor falhar alto (e
+    // registrar a resposta crua pra depuração) do que devolver um "sucesso"
+    // que na prática deixa o pedido preso em "aguardando pagamento" pra
+    // sempre. Não bloqueia se o PayOnPag já devolver a transação como paga
+    // (não deveria acontecer num Pix recém-criado, mas não custa permitir).
+    if (!result.pix && result.status !== "PAID") {
+      console.error("[payonpag] transação criada sem dados de Pix na resposta", json);
+      throw new PaymentProviderError(
+        "PayOnPag criou a transação mas não devolveu o QR code do Pix.",
+        json,
+      );
+    }
+
+    return result;
   }
 
   async getPayment(externalId: string): Promise<PaymentResult> {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
 import { OrderDetail } from "@/components/account/order-detail";
@@ -29,10 +29,9 @@ export default async function OrderSuccessPage({
 
   const payment = order.payment;
   const isPix = payment?.method === "PIX";
-  const showPixStatus =
-    isPix && payment?.pixQrCode && payment?.pixExpiresAt && payment.status !== "PAID"
-      ? true
-      : isPix && payment?.status === "PAID";
+  const hasPixQrData = Boolean(
+    payment?.pixQrCode && payment?.pixQrCodeUrl && payment?.pixExpiresAt,
+  );
 
   return (
     <Container className="flex flex-col gap-8 py-8 sm:py-12">
@@ -52,7 +51,7 @@ export default async function OrderSuccessPage({
 
       {isPix && payment && (
         <div className="mx-auto w-full max-w-md">
-          {showPixStatus && payment.pixQrCode && payment.pixQrCodeUrl && payment.pixExpiresAt ? (
+          {hasPixQrData && payment.pixQrCode && payment.pixQrCodeUrl && payment.pixExpiresAt ? (
             <PixPaymentStatus
               orderId={order.id}
               qrCode={payment.pixQrCode}
@@ -61,11 +60,26 @@ export default async function OrderSuccessPage({
               expiresAt={payment.pixExpiresAt.toISOString()}
               initialStatus={payment.status}
             />
-          ) : (
+          ) : payment.status === "PAID" ? (
             <div className="flex flex-col items-center gap-2 text-center">
               <CheckCircle2 className="h-12 w-12 text-primary" aria-hidden />
               <p className="text-lg font-semibold text-foreground">
                 Pagamento confirmado!
+              </p>
+            </div>
+          ) : (
+            // Nunca mostrar "confirmado" quando não temos QR code nem
+            // confirmação real — nesse caso o gateway não devolveu os dados
+            // do Pix (ver ProductSource/logs do provider configurado).
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-destructive p-6 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive" aria-hidden />
+              <p className="text-lg font-semibold text-foreground">
+                Não conseguimos gerar o QR code Pix agora.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Seu pedido foi registrado, mas o pagamento ainda está{" "}
+                <strong>aguardando confirmação</strong>. Acompanhe o status em
+                &quot;Meus Pedidos&quot; ou entre em contato com a loja.
               </p>
             </div>
           )}
